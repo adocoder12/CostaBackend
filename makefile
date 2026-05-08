@@ -1,6 +1,6 @@
 # --- Variables ---
 DB_URL=postgres://admin:password@localhost:5432/costaBackend?sslmode=disable
-MIGRATIONS_PATH=file://db/migrations
+MIGRATIONS_PATH=file://internal/db/migrations
 
 # --- Commands ---
 .PHONY: build dev run lint migrate-up migrate-down help
@@ -16,10 +16,10 @@ help:
 	@echo "  migrate-down  Rollback the last migration"
 
 build:
-	go build -o bin/app ./cmd/api
+	go build -o bin/app ./cmd/api/main.go
 
 dev:
-	go run ./cmd/api
+	go run ./cmd/api/main.go
 
 run:
 	./bin/app

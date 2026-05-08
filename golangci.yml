@@ -1,0 +1,146 @@
+# .golangci.yml
+# Documentation: https://golangci-lint.run/usage/configuration/
+
+version: "2"
+
+run:
+  # Timeout for the whole lint run
+  timeout: 5m
+  # Only lint our code, not generated files
+  exclude-dirs:
+    - vendor
+    - bin
+    - tmp
+  # Match Go version in go.mod
+  go: "1.23"
+
+linters:
+  # Disable all linters first, then enable only what we want
+  # This gives us full control and avoids surprise failures
+  default: none
+  enable:
+    # ── Bugs & Correctness ──────────────────────────────────────────────────
+    - errcheck        # every error must be handled
+    - gosimple        # simplify code where possible
+    - govet           # reports suspicious constructs (shadowed vars, etc.)
+    - ineffassign     # detects assignments that are never used
+    - staticcheck     # mega-linter: bugs, performance, style
+    - unused          # reports unused code
+
+    # ── Code Style ──────────────────────────────────────────────────────────
+    - gofmt           # standard Go formatting
+    - goimports       # correct import grouping and formatting
+    - misspell        # catches common English spelling mistakes in comments
+
+    # ── Complexity & Maintainability ────────────────────────────────────────
+    - gocognit        # cognitive complexity — keeps functions readable
+    - cyclop          # cyclomatic complexity — flags deeply nested code
+    - funlen          # flags functions that are too long
+
+    # ── Security ────────────────────────────────────────────────────────────
+    - gosec           # security issues (SQL injection, hardcoded creds, etc.)
+
+    # ── Go Idioms ───────────────────────────────────────────────────────────
+    - godot           # comments should end with a period
+    - noctx           # http requests should use context
+    - bodyclose       # HTTP response bodies must be closed
+    - contextcheck    # checks context is passed correctly through call chains
+    - errorlint       # correct error wrapping with %w
+    - exhaustive      # switch statements cover all enum cases
+    - gocritic        # opinionated but useful style checks
+    - nilerr          # finds code that returns nil error and nil value together
+    - nilnil          # flags functions that return (nil, nil) — always ambiguous
+
+    # ── SQL ─────────────────────────────────────────────────────────────────
+    - rowserrcheck    # checks sql.Rows.Err() is always checked
+    - sqlclosecheck   # checks sql.Rows and sql.Stmt are always closed
+
+linters-settings:
+  # ── errcheck ────────────────────────────────────────────────────────────────
+  errcheck:
+    # Also check errors in type assertions: val, ok := x.(T)
+    check-type-assertions: true
+    # Also check blank identifier assignments: _ = f()
+    check-blank: true
+
+  # ── gofmt ───────────────────────────────────────────────────────────────────
+  gofmt:
+    simplify: true
+
+  # ── goimports ───────────────────────────────────────────────────────────────
+  goimports:
+    # Your module path — keeps local imports in their own group
+    local-prefixes: github.com/adocoder12/Costabackend
+
+  # ── gocognit ────────────────────────────────────────────────────────────────
+  gocognit:
+    # Max cognitive complexity per function
+    # 15 is reasonable — lower = simpler code
+    min-complexity: 15
+
+  # ── cyclop ──────────────────────────────────────────────────────────────────
+  cyclop:
+    max-complexity: 10
+    skip-tests: true
+
+  # ── funlen ──────────────────────────────────────────────────────────────────
+  funlen:
+    # Max lines per function — forces you to break things up
+    lines: 80
+    statements: 50
+
+  # ── gosec ───────────────────────────────────────────────────────────────────
+  gosec:
+    excludes:
+      # G104: unhandled errors in defer — we handle these explicitly
+      - G104
+
+  # ── gocritic ────────────────────────────────────────────────────────────────
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      # hugeParam flags large structs passed by value — we use pointers anyway
+      - hugeParam
+
+  # ── misspell ────────────────────────────────────────────────────────────────
+  misspell:
+    locale: UK  # British English (Málaga is Spain after all)
+
+  # ── exhaustive ──────────────────────────────────────────────────────────────
+  exhaustive:
+    # Require default case in switch statements
+    default-signifies-exhaustive: true
+
+issues:
+  # Don't fail on auto-fixable issues — just report them
+  fix: false
+
+  # Max issues per linter to show (0 = unlimited)
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # ── Test files ────────────────────────────────────────────────────────────
+    - path: _test\.go
+      linters:
+        - funlen      # test functions can be long
+        - gosec       # security rules relaxed in tests
+        - gocritic    # style relaxed in tests
+
+    # ── main.go ───────────────────────────────────────────────────────────────
+    - path: cmd/api/main\.go
+      linters:
+        - funlen      # main() wires everything — it will be long
+
+    # ── migrations ────────────────────────────────────────────────────────────
+    - path: internal/db/migrations
+      linters:
+        - all
+
+    # ── godot: exclude log/error strings from needing periods ─────────────────
+    - linters:
+        - godot
+      source: "^\\s*(//\\s*(nolint|TODO|FIXME|NOTE|HACK|XXX))"
