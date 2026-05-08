@@ -33,7 +33,7 @@ func main() {
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	//3. load config
-	cfg, err := config.Load()
+	cfg := config.Load()
 	if err != nil {
 		errorLog.Fatalf("Error loading config: %v", err)
 	}
@@ -47,6 +47,7 @@ func main() {
 	}
 	defer pool.Close()
 
+	//5. check if db connection is alive
 	ctxPing, cancelPing := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelPing()
 	if err := pool.Ping(ctxPing); err != nil {
