@@ -1,63 +1,120 @@
 package config
 
 import (
-	"fmt"
-	"log"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Port              string
-	DBDSN             string
-	SupabaseJWTSecret string
-	AWSEndpoint       string
-	AWSRegion         string
-	S3Bucket          string
-	SQSQueueURL       string
+	Server   ServerConfig
+	Database DatabaseConfig
+	JWT      JWTConfig
+	AWS      AWSConfig
+	Upload   UploadConfig
+	SMTP     SMTPConfig
 }
 
-func Load() *Config {
-	// We ignore error here because in production .env might not exist
-	// (variables would be set via Docker/Kubernetes directly)
+type ServerConfig struct {
+	Port    string
+	GinMode string
+}
+
+type DatabaseConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Name     string
+	SSLMode  string
+}
+
+type JWTConfig struct {
+	Secret              string
+	ExpiresIn           time.Duration
+	RefreshTokenExpires time.Duration
+}
+type AWSConfig struct {
+	Region          string
+	AccessKeyID     string
+	SecretAccessKey string
+	S3Bucket        string
+	S3Endpoint      string
+	EventQueueName  string
+	//SqsQueueName    string
+}
+
+type SMTPConfig struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+	From     string
+}
+
+type UploadConfig struct {
+	Path        string
+	MaxFileSize int64
+
+	// UploadProvider  can be s3 or local
+	UploadProvider string
+}
+
+func Load() (*Config, error) {
 	_ = godotenv.Load()
 
-	cfg := &Config{
-		Port:              getEnv("PORT", "8080"),
-		SupabaseJWTSecret: getEnv("SUPABASE_JWT_SECRET", ""),
-		AWSEndpoint:       getEnv("AWS_ENDPOINT", "http://localhost:4566"),
-		AWSRegion:         getEnv("AWS_REGION", "eu-central-1"),
-		S3Bucket:          getEnv("S3_BUCKET", "costa-pms-uploads"),
-		SQSQueueURL:       getEnv("SQS_QUEUE_URL", ""),
-	}
+	jwtExpiresIn, _ := time.ParseDuration(getEnv("JWT_EXPIRES_IN", "24h"))
+	refreshTokenExpires, _ := time.ParseDuration(getEnv("REFRESH_TOKEN_EXPIRES_IN", "720h"))
+	maxUploadSize, _ := strconv.ParseInt(getEnv("MAX_UPLOAD_SIZE", "10485760"), 10, 64)
+	smtpPort, _ := strconv.Atoi(getEnv("SMTP_PORT", "1025"))
 
-	cfg.DBDSN = buildDSN()
+	return &Config{
+		Server: ServerConfig{
+			Port:    getEnv("PORT", "8080"),
+			GinMode: getEnv("GIN_MODE", "debug"),
+		},
+		Database: DatabaseConfig{
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     getEnv("DB_PORT", "5432"),
+			User:     getEnv("DB_USER", "postgres"),
+			Password: getEnv("DB_PASSWORD", "password"),
+			Name:     getEnv("DB_NAME", "ecommerce"),
+			SSLMode:  getEnv("DB_SSL_MODE", "disable"),
+		},
+		JWT: JWTConfig{
+			Secret:              getEnv("JWT_SECRET", "your-super-secret-jwt-key"),
+			ExpiresIn:           jwtExpiresIn,
+			RefreshTokenExpires: refreshTokenExpires,
+		},
+		AWS: AWSConfig{
+			Region:          getEnv("AWS_REGION", "us-east-1"),
+			AccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", "test"),
+			SecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", "test"),
+			S3Bucket:        getEnv("AWS_S3_BUCKET", "ecommerce-uploads"),
+			S3Endpoint:      getEnv("AWS_S3_ENDPOINT", "http://localhost:4566"),
+			EventQueueName:  getEnv("AWS_EVENT_QUEUE_NAME", "ecommerce-events"),
+		},
+		Upload: UploadConfig{
+			Path:           getEnv("UPLOAD_PATH", "./uploads"),
+			MaxFileSize:    maxUploadSize,
+			UploadProvider: getEnv("UPLOAD_PROVIDER", "local"),
+		},
+		SMTP: SMTPConfig{
+			Host:     getEnv("SMTP_HOST", "localhost"),
+			Port:     smtpPort,
+			Username: getEnv("SMTP_USERNAME", ""),
+			Password: getEnv("SMTP_PASSWORD", ""),
+			From:     getEnv("SMTP_FROM", "noreply@shop.com"),
+		},
+	}, nil
 
-	if cfg.SupabaseJWTSecret == "" {
-		log.Fatal("SUPABASE_JWT_SECRET is required for authentication")
-	}
-
-	return cfg
 }
 
-func buildDSN() string {
-	host := getEnv("DB_HOST", "localhost")
-	port := getEnv("DB_PORT", "5432")
-	user := getEnv("DB_USER", "admin")
-	password := getEnv("DB_PASSWORD", "password")
-	dbname := getEnv("DB_NAME", "costaBackend")
-	sslmode := getEnv("DB_SSLMODE", "disable")
-
-	return fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		host, port, user, password, dbname, sslmode,
-	)
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
 		return value
 	}
-	return fallback
+	return defaultValue
 }

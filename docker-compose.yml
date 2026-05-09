@@ -7,7 +7,7 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env
+      - .env-example
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -69,19 +69,25 @@ services:
 
   # ── LocalStack (S3 + SQS) ────────────────────────────────────────────────────
   localstack:
-    image: localstack/localstack:latest
+    # Use the base community image
+    image: localstack/localstack:3.4.0
     container_name: localstack-container
+    ports:
+      - "4566:4566"
     environment:
       - SERVICES=s3,sqs
       - DEFAULT_REGION=eu-central-1
-    ports:
-      - "4566:4566"
+      - ACTIVATE_PRO=0  # Explicitly disable Pro features
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
     volumes:
-      # Change this from ./localstack to a named volume
       - localstack_data:/var/lib/localstack
-      - /var/run/docker.sock:/var/run/docker.sock
-
- 
+      - ./docker/init/aws/init-localstack.sh:/etc/localstack/init/ready.d/init.sh
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:4566/_localstack/health | grep -q '\"s3\": \"running\"'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 # ── Volumes ───────────────────────────────────────────────────────────────────
 volumes:
   postgres_data:

@@ -1,8 +1,7 @@
 # Stage 1: Build
 FROM golang:1.26-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+
 
 WORKDIR /app
 
@@ -14,33 +13,27 @@ RUN go mod download
 COPY . .
 
 # Build the application
-# Note: Changed ./cmd/api to ./cmd/main.go to match your previous folder structure
-RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags="-w -s" \
-    -o /app/bin/app \
-    ./cmd/api/main.go
+RUN mkdir -p /app/bin && \
+    for cmd in cmd/*/; do \
+        if [ -d "$cmd" ]; then \
+            binary=$(basename $cmd); \
+            echo "Building $binary..."; \
+            CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/$binary ./$cmd; \
+        fi \
+    done
+
 # Stage 2: Final Runtime
 FROM alpine:3.20
 
-# Create a non-privileged user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Install runtime dependencies (SSL certs for Supabase/AWS and Timezone data)
-RUN apk add --no-cache ca-certificates tzdata
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
 
-WORKDIR /app
+
+WORKDIR /app/
 
 # Copy binary and migrations from builder
-COPY --from=builder /app/bin/app .
-# Ensure the path matches your actual migrations folder
-COPY --from=builder /app/internal/repository/migrations ./migrations
+COPY --from=builder /app/bin/* ./
 
-# Change ownership to the non-root user
-RUN chown -R appuser:appgroup /app
-
-USER appuser
-
-EXPOSE 8080
-
-# Use the .env file in the container if provided by docker-compose
-CMD ["./app"]
+# Use the .env-example file in the container if provided by docker-compose
+CMD ["./api"]

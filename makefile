@@ -32,3 +32,10 @@ migrate-up:
 
 migrate-down:
 	migrate -source $(MIGRATIONS_PATH) -database "$(DB_URL)" down 1
+
+
+docker-up:
+	docker compose -f ./docker-compose.yml up -d
+
+docker-down:
+	docker compose -f ./docker-compose.yml down
