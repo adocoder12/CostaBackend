@@ -12,12 +12,12 @@ type Apartment struct {
 	Address       string
 	Status        string // clean, dirty, in_progress, maintenance
 	LicenseNumber string
-	CadastralRef  *string
-	DoorCode      *string
-	NextCheckIn   *time.Time
-	CheckoutDate  *time.Time
-	GuestName     *string
-	Notes         *string
+	CadastralRef  string
+	DoorCode      string
+	NextCheckIn   time.Time
+	CheckoutDate  time.Time
+	GuestName     string
+	Notes         string
 	OwnerID       uuid.UUID
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
