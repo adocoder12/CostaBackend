@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"log"
 	"log/slog"
@@ -12,31 +11,31 @@ import (
 	"github.com/adocoder12/Costabackend/internal/config"
 	"github.com/adocoder12/Costabackend/internal/db"
 	"github.com/adocoder12/Costabackend/internal/handler"
+	"github.com/adocoder12/Costabackend/internal/repository/postgres"
+	"github.com/adocoder12/Costabackend/internal/services" // Add this
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	// 1. Load environment variables from .env
-
+	// 1. Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Warning: .env file not found, using system env: %v", err)
 	}
 
-	// 2. Initialize Structured Logger (2026 Best Practice)
+	// 2. Initialize Structured Logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug, // Change to Info for production
+		Level: slog.LevelDebug,
 	}))
 	slog.SetDefault(logger)
 
-	// 3. Load the central Config struct
+	// 3. Load Config
 	cfg, err := config.Load()
 	if err != nil {
 		logger.Error("Failed to load config", "error", err)
 		os.Exit(1)
 	}
 
-	// 4. Initialize Database Connection (pgxpool)
-	// Use the DSN() helper we added to your config earlier
+	// 4. Initialize DB Pool
 	pool, err := db.NewPool(cfg.Database)
 	if err != nil {
 		logger.Error("Failed to connect to database", "error", err)
@@ -45,35 +44,33 @@ func main() {
 	defer pool.Close()
 	logger.Info("Database connection established")
 
-	// 5. Run migrations — safe to call on every startup
+	// 5. Run Migrations
 	if err := db.Migrate(cfg.Database.MigrationURL()); err != nil {
 		logger.Error("failed to run migrations", "error", err)
 		os.Exit(1)
 	}
 	logger.Info("✅ database migrations verified")
-	// 6. Wire dependencies into App
-	// Repositories, services, and AWS clients added in Phase 3
 
-	var count int
-	errC := pool.QueryRow(context.Background(), "SELECT COUNT(*) FROM apartments").Scan(&count)
-	if errC != nil {
-		logger.Error("Table does not exist!", "error", errC)
-	} else {
-		logger.Info("Table verified", "row_count", count)
-	}
+	// 6. WIRE DEPENDENCIES (The "Magic" Step)
+	// Initialize Repository
+	aptRepo := &postgres.ApartmentRepository{Pool: pool}
 
-	app := handler.NewApp(logger, cfg)
+	// Initialize Service (Inject the repo and logger)
+	aptService := services.NewApartmentService(aptRepo, logger)
+
+	// Initialize App Handler (Inject the service)
+	// Assuming NewApp(logger, cfg, apartmentService, cleanerService)
+	app := handler.NewApp(logger, cfg, aptService, nil)
 
 	// 7. Setup Gin routes
-	// Full routing added in Phase 4
 	engine := app.SetupRoutes()
 
-	// 8. Start HTTP server with timeouts
+	// 8. Start HTTP server
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,
 		Handler:      engine,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second, // longer for S3 photo uploads
+		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  time.Minute,
 	}
 

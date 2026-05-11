@@ -1,11 +1,10 @@
 package middlewares
 
 import (
-	"github.com/adocoder12/Costabackend/internal/handler"
 	"github.com/gin-gonic/gin"
 )
 
-func (app *handler.App) corsMiddleware() gin.HandlerFunc {
+func CorsMiddleware() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")

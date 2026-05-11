@@ -11,7 +11,7 @@ type Apartment struct {
 	Name          string     `json:"name"`
 	Address       string     `json:"address"`
 	Status        string     `json:"status"` // clean, dirty, etc.
-	LicenseNumber string     `json:"license_number"`
+	LicenseNumber *string    `json:"license_number"`
 	CadastralRef  *string    `json:"cadastral_ref,omitempty"`
 	DoorCode      *string    `json:"door_code,omitempty"`
 	NextCheckIn   *time.Time `json:"next_check_in,omitempty"`

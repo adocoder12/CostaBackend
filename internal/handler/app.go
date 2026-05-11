@@ -5,16 +5,15 @@ import (
 	"net/http"
 
 	"github.com/adocoder12/Costabackend/internal/config"
+	"github.com/adocoder12/Costabackend/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
-// All services are injected here as interfaces — never concrete types.
-// This makes handlers testable without a real DB or S3.
 type App struct {
 	Logger *slog.Logger
 	Config *config.Config
 	// Services added as interfaces in Phase 3:
-	// ApartmentService service.ApartmentServiceInterface
+	ApartmentService services.ApartmentServiceInterface
 	// CleanerService   service.CleanerServiceInterface
 	// BookingService   service.BookingServiceInterface
 	// GuestService     service.GuestServiceInterface

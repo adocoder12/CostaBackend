@@ -13,6 +13,6 @@ type ApartmentsRepositoryInterface interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Apartment, error)
 	Create(ctx context.Context, user *models.Apartment) (*models.Apartment, error)
 	Update(ctx context.Context, user *models.Apartment) (*models.Apartment, error)
-	Delete(ctx context.Context, id uint) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 type CleanersRepositoryInterface interface{}
