@@ -20,11 +20,15 @@ type App struct {
 	// TaskService      service.TaskServiceInterface
 }
 
-// NewApp wires all dependencies into the App struct.
-func NewApp(logger *slog.Logger, cfg *config.Config) *App {
+func NewApp(
+	logger *slog.Logger,
+	cfg *config.Config,
+	aptService services.ApartmentServiceInterface,
+) *App {
 	return &App{
-		Logger: logger,
-		Config: cfg,
+		Logger:           logger,
+		Config:           cfg,
+		ApartmentService: aptService,
 	}
 }
 

@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-// CreateApartmentRequest is what we receive from the frontend
 type CreateApartmentRequest struct {
 	Name          string  `json:"name" binding:"required"`
 	Address       string  `json:"address" binding:"required"`
@@ -16,7 +15,6 @@ type CreateApartmentRequest struct {
 	Notes         *string `json:"notes"`
 }
 
-// ApartmentResponse is what we send back to the frontend
 type ApartmentResponse struct {
 	ID            uuid.UUID  `json:"id"`
 	Name          string     `json:"name"`
@@ -25,20 +23,21 @@ type ApartmentResponse struct {
 	LicenseNumber string     `json:"license_number"`
 	NextCheckIn   *time.Time `json:"next_check_in,omitempty"`
 	GuestName     string     `json:"guest_name,omitempty"`
+	DoorCode      *string    `json:"door_code,omitempty"` // Masked in service
+	IsMine        bool       `json:"is_mine"`             // Calculated in DB/Service
 }
 
 func (req *CreateApartmentRequest) ToModel() *models.Apartment {
 	return &models.Apartment{
 		Name:          req.Name,
 		Address:       req.Address,
-		LicenseNumber: &req.LicenseNumber, // Convert to pointer for the model
+		LicenseNumber: &req.LicenseNumber,
 		CadastralRef:  req.CadastralRef,
 		DoorCode:      req.DoorCode,
 		Notes:         req.Notes,
 	}
 }
 
-// FromModel creates a response DTO from a database model(Response)
 func FromModel(m *models.Apartment) ApartmentResponse {
 	res := ApartmentResponse{
 		ID:          m.ID,
@@ -46,9 +45,11 @@ func FromModel(m *models.Apartment) ApartmentResponse {
 		Address:     m.Address,
 		Status:      m.Status,
 		NextCheckIn: m.NextCheckIn,
+		// ADDED THESE:
+		IsMine:   m.IsMine,   // Pass the flag from the model
+		DoorCode: m.DoorCode, // Pass the (potentially nil) door code
 	}
 
-	// Handle LicenseNumber pointer to string conversion safely
 	if m.LicenseNumber != nil {
 		res.LicenseNumber = *m.LicenseNumber
 	}
@@ -58,4 +59,12 @@ func FromModel(m *models.Apartment) ApartmentResponse {
 	}
 
 	return res
+}
+
+func FromModelList(models []models.Apartment) []ApartmentResponse {
+	result := make([]ApartmentResponse, 0, len(models))
+	for _, m := range models {
+		result = append(result, FromModel(&m))
+	}
+	return result
 }

@@ -8,11 +8,11 @@ import (
 )
 
 type ApartmentsRepositoryInterface interface {
-	GetAllApartments(ctx context.Context) ([]models.Apartment, error)
-	GetByEmail(ctx context.Context, email string) (*models.Apartment, error)
-	GetByID(ctx context.Context, id uuid.UUID) (*models.Apartment, error)
-	Create(ctx context.Context, user *models.Apartment) (*models.Apartment, error)
-	Update(ctx context.Context, user *models.Apartment) (*models.Apartment, error)
-	Delete(ctx context.Context, id uuid.UUID) error
+	GetApartments(ctx context.Context, viewerID uuid.UUID) ([]models.Apartment, []bool, error)
+	GetApartmentByID(ctx context.Context, id uuid.UUID) (*models.Apartment, error)
+	CreateApartment(ctx context.Context, apt *models.Apartment) (*models.Apartment, error)
+	UpdateApartment(ctx context.Context, apt *models.Apartment) (*models.Apartment, error)
+	DeleteApartment(ctx context.Context, id uuid.UUID) error
 }
+
 type CleanersRepositoryInterface interface{}

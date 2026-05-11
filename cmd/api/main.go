@@ -51,7 +51,7 @@ func main() {
 	}
 	logger.Info("✅ database migrations verified")
 
-	// 6. WIRE DEPENDENCIES (The "Magic" Step)
+	// 6. WIRE DEPENDENCIES
 	// Initialize Repository
 	aptRepo := &postgres.ApartmentRepository{Pool: pool}
 
@@ -60,7 +60,7 @@ func main() {
 
 	// Initialize App Handler (Inject the service)
 	// Assuming NewApp(logger, cfg, apartmentService, cleanerService)
-	app := handler.NewApp(logger, cfg, aptService, nil)
+	app := handler.NewApp(logger, cfg, aptService)
 
 	// 7. Setup Gin routes
 	engine := app.SetupRoutes()

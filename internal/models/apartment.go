@@ -19,6 +19,15 @@ type Apartment struct {
 	GuestName     *string    `json:"guest_name,omitempty"`
 	Notes         *string    `json:"notes,omitempty"`
 	OwnerID       *uuid.UUID `json:"owner_id,omitempty"`
+	IsMine        bool       `json:"is_mine"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 }
+
+const (
+	StatusClean       = "clean"
+	StatusDirty       = "dirty"
+	StatusInProgress  = "in_progress"
+	StatusMaintenance = "maintenance"
+	StatusBlocked     = "blocked"
+)
