@@ -35,5 +35,5 @@ WORKDIR /app/
 # Copy binary and migrations from builder
 COPY --from=builder /app/bin/* ./
 
-# Use the .env-example file in the container if provided by docker-compose
+# Use the .env file in the container if provided by docker-compose
 CMD ["./api"]

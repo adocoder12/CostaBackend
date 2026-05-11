@@ -1,59 +1,85 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"errors"
 	"log"
+	"log/slog"
+	"net/http"
 	"os"
-	//"os/signal"
-	//"syscall"
-	//"time"
-	//"context"
-	//
-	//"github.com/adocoder12/Costabackend/internal/config"
-	//
-	//"github.com/jackc/pgx/v5/pgxpool"
+	"time"
 
+	"github.com/adocoder12/Costabackend/internal/config"
+	"github.com/adocoder12/Costabackend/internal/db"
+	"github.com/adocoder12/Costabackend/internal/handler"
 	"github.com/joho/godotenv"
 )
 
 func main() {
+	// 1. Load environment variables from .env
 
-	//1. load env
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Error loading .env-example file")
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: .env file not found, using system env: %v", err)
 	}
 
-	// 2. Setup loggers
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
-	fmt.Println(infoLog, errorLog)
-	/*
-		//3. load config
-		cfg := config.Load()
-		if err != nil {
-			errorLog.Fatalf("Error loading config: %v", err)
-		}
+	// 2. Initialize Structured Logger (2026 Best Practice)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug, // Change to Info for production
+	}))
+	slog.SetDefault(logger)
 
-		//4. initialize db
-		ctxPool, cancelCtxPool := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		defer cancelCtxPool()
-		pool, err := pgxpool.New(ctxPool, cfg.DBDSN)
-		if err != nil {
-			errorLog.Fatalf("Error connecting to database: %v", err)
-		}
-		defer pool.Close()
+	// 3. Load the central Config struct
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Error("Failed to load config", "error", err)
+		os.Exit(1)
+	}
 
-		//5. check if db connection is alive
-		ctxPing, cancelPing := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancelPing()
-		if err := pool.Ping(ctxPing); err != nil {
-			errorLog.Fatalf("Database ping failed: %v", err)
-		}
-		infoLog.Println("🗄️  Successfully connected to PostgreSQL!")*/
+	// 4. Initialize Database Connection (pgxpool)
+	// Use the DSN() helper we added to your config earlier
+	pool, err := db.NewPool(cfg.Database)
+	if err != nil {
+		logger.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+	defer pool.Close()
+	logger.Info("Database connection established")
 
-	//connecting to app
+	// 5. Run migrations — safe to call on every startup
+	if err := db.Migrate(cfg.Database.MigrationURL()); err != nil {
+		logger.Error("failed to run migrations", "error", err)
+		os.Exit(1)
+	}
+	logger.Info("✅ database migrations verified")
+	// 6. Wire dependencies into App
+	// Repositories, services, and AWS clients added in Phase 3
 
-	//app := handler.NewServer(infoLog, errorLog)
+	var count int
+	errC := pool.QueryRow(context.Background(), "SELECT COUNT(*) FROM apartments").Scan(&count)
+	if errC != nil {
+		logger.Error("Table does not exist!", "error", errC)
+	} else {
+		logger.Info("Table verified", "row_count", count)
+	}
 
+	app := handler.NewApp(logger, cfg)
+
+	// 7. Setup Gin routes
+	// Full routing added in Phase 4
+	engine := app.SetupRoutes()
+
+	// 8. Start HTTP server with timeouts
+	srv := &http.Server{
+		Addr:         ":" + cfg.Server.Port,
+		Handler:      engine,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second, // longer for S3 photo uploads
+		IdleTimeout:  time.Minute,
+	}
+
+	logger.Info("🚀 Costa PMS API starting", "port", cfg.Server.Port)
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		logger.Error("server failed", "error", err)
+		os.Exit(1)
+	}
 }

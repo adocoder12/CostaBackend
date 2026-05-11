@@ -1,32 +1,56 @@
 package handler
 
 import (
-	service "github.com/adocoder12/Costabackend/internal/services"
-	"log"
+	"log/slog"
 	"net/http"
+
+	"github.com/adocoder12/Costabackend/internal/config"
+	"github.com/gin-gonic/gin"
 )
 
+// All services are injected here as interfaces — never concrete types.
+// This makes handlers testable without a real DB or S3.
 type App struct {
-	InfoLog          *log.Logger
-	ErrorLog         *log.Logger
-	ApartmentService *service.ApartmentService
+	Logger *slog.Logger
+	Config *config.Config
+	// Services added as interfaces in Phase 3:
+	// ApartmentService service.ApartmentServiceInterface
+	// CleanerService   service.CleanerServiceInterface
+	// BookingService   service.BookingServiceInterface
+	// GuestService     service.GuestServiceInterface
+	// TaskService      service.TaskServiceInterface
 }
 
-func NewServer(infoLog *log.Logger, errorLog *log.Logger) *App {
+// NewApp wires all dependencies into the App struct.
+func NewApp(logger *slog.Logger, cfg *config.Config) *App {
 	return &App{
-		InfoLog:  infoLog,
-		ErrorLog: errorLog,
+		Logger: logger,
+		Config: cfg,
 	}
 }
-func (server *App) serverError(w http.ResponseWriter, err error) {
-	server.ErrorLog.Printf("%+v", err)
-	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+// serverError logs the full error detail (never exposed to client)
+func (a *App) serverError(c *gin.Context, err error) {
+	a.Logger.Error("internal server error",
+		"path", c.Request.URL.Path,
+		"method", c.Request.Method,
+		"error", err.Error(),
+	)
+
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"error": http.StatusText(http.StatusInternalServerError),
+	})
 }
 
-func (server *App) clientError(w http.ResponseWriter, status int) {
-	// Standardized way to send 400, 401, 403, etc.
-	http.Error(w, http.StatusText(status), status)
+// clientError sends a structured 4xx response with a human-readable message.
+func (a *App) clientError(c *gin.Context, status int, message string) {
+	c.JSON(status, gin.H{
+		"error":   http.StatusText(status),
+		"message": message,
+	})
 }
-func (server *App) notFound(w http.ResponseWriter) {
-	server.clientError(w, http.StatusNotFound)
+
+// notFound is a 404 shorthand.
+func (a *App) notFound(c *gin.Context) {
+	a.clientError(c, http.StatusNotFound, "the requested resource was not found")
 }

@@ -1,6 +1,9 @@
 # --- Variables ---
 DB_URL=postgres://admin:password@localhost:5432/costaBackend?sslmode=disable
 MIGRATIONS_PATH=file://internal/db/migrations
+DB_CONTAINER=postgres-container
+DB_USER=admin
+DB_NAME=costaBackend
 
 # --- Commands ---
 .PHONY: build dev run lint migrate-up migrate-down help
@@ -14,6 +17,10 @@ help:
 	@echo "  lint          Run golangci-lint"
 	@echo "  migrate-up    Run all up migrations"
 	@echo "  migrate-down  Rollback the last migration"
+
+
+db-shell:
+	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME)
 
 build:
 	go build -o bin/app ./cmd/api/main.go
