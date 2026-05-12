@@ -1,32 +1,49 @@
 package dto
 
 import (
+	"time"
+
 	"github.com/adocoder12/Costabackend/internal/models"
 	"github.com/google/uuid"
-	"time"
 )
 
+// CreateApartmentRequest is the inbound payload for POST /apartments.
 type CreateApartmentRequest struct {
-	Name          string  `json:"name" binding:"required"`
-	Address       string  `json:"address" binding:"required"`
+	Name          string  `json:"name"           binding:"required"`
+	Address       string  `json:"address"        binding:"required"`
 	LicenseNumber string  `json:"license_number" binding:"required"`
 	CadastralRef  *string `json:"cadastral_ref"`
 	DoorCode      *string `json:"door_code"`
 	Notes         *string `json:"notes"`
 }
 
+// UpdateApartmentRequest is the inbound payload for PUT /apartments/:id.
+// All fields are optional — only set fields are updated.
+type UpdateApartmentRequest struct {
+	Name          *string `json:"name"`
+	Address       *string `json:"address"`
+	LicenseNumber *string `json:"license_number"`
+	CadastralRef  *string `json:"cadastral_ref"`
+	DoorCode      *string `json:"door_code"`
+	Notes         *string `json:"notes"`
+	Status        *string `json:"status"`
+}
+
+// ApartmentResponse is the outbound payload for all apartment endpoints.
+// IsMine and DoorCode masking are applied in the service layer.
 type ApartmentResponse struct {
-	ID            uuid.UUID  `json:"id"`
+	ID            uuid.UUID  `json:"id"` // fixed: was db:"id"
 	Name          string     `json:"name"`
 	Address       string     `json:"address"`
 	Status        string     `json:"status"`
 	LicenseNumber string     `json:"license_number"`
 	NextCheckIn   *time.Time `json:"next_check_in,omitempty"`
 	GuestName     string     `json:"guest_name,omitempty"`
-	DoorCode      *string    `json:"door_code,omitempty"` // Masked in service
-	IsMine        bool       `json:"is_mine"`             // Calculated in DB/Service
+	DoorCode      *string    `json:"door_code,omitempty"` // nil if viewer is not the owner
+	IsMine        bool       `json:"is_mine"`             // computed in service, not stored in DB
 }
 
+// ToModel maps a CreateApartmentRequest to an Apartment model for persistence.
 func (req *CreateApartmentRequest) ToModel() *models.Apartment {
 	return &models.Apartment{
 		Name:          req.Name,
@@ -38,6 +55,7 @@ func (req *CreateApartmentRequest) ToModel() *models.Apartment {
 	}
 }
 
+// FromModel maps an Apartment model to an ApartmentResponse DTO.
 func FromModel(m *models.Apartment) ApartmentResponse {
 	res := ApartmentResponse{
 		ID:          m.ID,
@@ -45,9 +63,7 @@ func FromModel(m *models.Apartment) ApartmentResponse {
 		Address:     m.Address,
 		Status:      m.Status,
 		NextCheckIn: m.NextCheckIn,
-		// ADDED THESE:
-		IsMine:   m.IsMine,   // Pass the flag from the model
-		DoorCode: m.DoorCode, // Pass the (potentially nil) door code
+		DoorCode:    m.DoorCode,
 	}
 
 	if m.LicenseNumber != nil {
@@ -61,9 +77,10 @@ func FromModel(m *models.Apartment) ApartmentResponse {
 	return res
 }
 
-func FromModelList(models []models.Apartment) []ApartmentResponse {
-	result := make([]ApartmentResponse, 0, len(models))
-	for _, m := range models {
+// FromModelList maps a slice of Apartment models to a slice of ApartmentResponse DTOs.
+func FromModelList(apts []models.Apartment) []ApartmentResponse {
+	result := make([]ApartmentResponse, 0, len(apts))
+	for _, m := range apts {
 		result = append(result, FromModel(&m))
 	}
 	return result
