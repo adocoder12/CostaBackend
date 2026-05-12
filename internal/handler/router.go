@@ -1,56 +1,72 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/adocoder12/Costabackend/internal/handler/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
 func (app *App) SetupRoutes() *gin.Engine {
-	// 1. Initialize engine with default middleware (Logger & Recovery)
-	r := gin.Default()
+	// Use gin.New() instead of gin.Default() so we control all middleware.
+	// gin.Default() adds its own logger which conflicts with our slog setup.
+	r := gin.New()
 
-	// 2. Add Custom Global Middleware
-	// It's a best practice to have a RequestID for tracing logs in slog
-	r.Use(middlewares.CorsMiddleware())
+	// ── Global middleware ─────────────────────────────────────────────────────
+	r.Use(gin.Recovery()) // recover from panics, return 500
+	r.Use(middlewares.CorsMiddleware(app.Config.CORS.AllowedOrigin))
 
-	app.Logger.Info("API Routes initializing...")
+	app.Logger.Info("initializing API routes")
 
-	// 3. Public / System Routes
+	// ── System routes (public) ────────────────────────────────────────────────
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"status":  "operational",
 			"service": "costa-backend",
 		})
 	})
 
-	// 4. API Version 1 Group
+	// ── API v1 ────────────────────────────────────────────────────────────────
 	v1 := r.Group("/api/v1")
+
+	// ── Apartments ───────────────────────────────────────────────────────────
+	apartments := v1.Group("/apartments")
 	{
-		// --- Apartment Routes ---
-		apartments := v1.Group("/apartments")
-		{
-			// GET /api/v1/apartments -> List all
-			apartments.GET("", app.GetApartmentsHandler)
-
-			// POST /api/v1/apartments -> Create new
-			apartments.POST("", app.CreateApartmentHandler)
-
-			// GET /api/v1/apartments/:id -> Single Detail
-			//apartments.GET("/:id", app.GetApartmentByIDHandler)
-
-			// PATCH /api/v1/apartments/:id -> Partial Update
-			// apartments.PATCH("/:id", app.UpdateApartmentHandler)
-		}
-
-		// --- Cleaner Routes ---
-		cleaners := v1.Group("/cleaners")
-		{
-			cleaners.GET("", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "Cleaners module active"})
-			})
-			// Add your cleaner handlers here as you build them
-		}
+		apartments.GET("", app.GetApartmentsHandler)
+		apartments.POST("", app.CreateApartmentHandler)
+		apartments.GET("/:id", app.GetApartmentByIDHandler)
+		apartments.PUT("/:id", app.UpdateApartmentHandler)
+		apartments.DELETE("/:id", app.DeleteApartmentHandler)
 	}
+
+	// ── Cleaners ─────────────────────────────────────────────────────────────
+	cleaners := v1.Group("/cleaners")
+	{
+		cleaners.GET("", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "cleaners module coming soon"})
+		})
+	}
+
+	// ── Bookings ─────────────────────────────────────────────────────────────
+	bookings := v1.Group("/bookings")
+	{
+		bookings.GET("", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "bookings module coming soon"})
+		})
+	}
+
+	// ── Cleaning Tasks ───────────────────────────────────────────────────────
+	tasks := v1.Group("/tasks")
+	{
+		tasks.GET("", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "tasks module coming soon"})
+		})
+	}
+
+	// ── Dashboard ────────────────────────────────────────────────────────────
+	v1.GET("/dashboard/stats", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "dashboard module coming soon"})
+	})
 
 	return r
 }

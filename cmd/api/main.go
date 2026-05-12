@@ -49,7 +49,7 @@ func main() {
 	logger.Info("🗄️  database connection established")
 
 	// 6. Run migrations — FIX: use DSN() not MigrationURL() which doesn't exist
-	if err := db.Migrate(cfg.Database.DSN()); err != nil {
+	if err := db.Migrate(cfg.Database); err != nil {
 		logger.Error("failed to run migrations", "error", err)
 		os.Exit(1)
 	}

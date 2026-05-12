@@ -8,7 +8,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config holds all environment-driven configuration for the application.
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
@@ -34,9 +33,11 @@ type DatabaseConfig struct {
 	MinConns int32
 }
 
+// SupabaseConfig holds Supabase JWT verification settings.
+// Costa PMS does not issue its own JWTs — Supabase handles all auth.
 type SupabaseConfig struct {
-	JWTSecret string // from Supabase dashboard → Settings → API → JWT Secret
-	URL       string // your Supabase project URL
+	JWTSecret string
+	URL       string
 }
 
 type AWSConfig struct {
@@ -44,28 +45,25 @@ type AWSConfig struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	S3Bucket        string
-	S3Endpoint      string // LocalStack endpoint in dev, empty in prod
-	SQSQueueURL     string // SES.HOSPEDAJES transmission queue
+	S3Endpoint      string
+	SQSQueueURL     string
 }
 
 type UploadConfig struct {
-	MaxFileSize    int64  // bytes
-	UploadProvider string // "s3" or "local"
+	MaxFileSize    int64
+	UploadProvider string
 }
 
 type CORSConfig struct {
 	AllowedOrigin string
 }
 
-// Load reads all environment variables and returns a Config.
-// Tolerates a missing .env file (uses system env instead).
 func Load() (*Config, error) {
-	// Tolerant load — no error if .env is missing (production uses system env)
 	_ = godotenv.Load()
 
 	maxConns, _ := strconv.ParseInt(getEnv("DB_MAX_CONNS", "25"), 10, 32)
 	minConns, _ := strconv.ParseInt(getEnv("DB_MIN_CONNS", "5"), 10, 32)
-	maxUploadSize, _ := strconv.ParseInt(getEnv("MAX_UPLOAD_SIZE", "10485760"), 10, 64) // 10MB default
+	maxUploadSize, _ := strconv.ParseInt(getEnv("MAX_UPLOAD_SIZE", "10485760"), 10, 64)
 
 	cfg := &Config{
 		Server: ServerConfig{
@@ -91,7 +89,7 @@ func Load() (*Config, error) {
 			AccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", "test"),
 			SecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", "test"),
 			S3Bucket:        getEnv("S3_BUCKET", "costa-pms-uploads"),
-			S3Endpoint:      getEnv("AWS_ENDPOINT", ""), // set to http://localstack:4566 in dev
+			S3Endpoint:      getEnv("AWS_ENDPOINT", ""),
 			SQSQueueURL:     getEnv("SQS_QUEUE_URL", ""),
 		},
 		Upload: UploadConfig{
@@ -110,7 +108,7 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-// DSN returns the PostgreSQL connection string from the database config.
+// DSN returns the key=value format used by pgx/pgxpool.
 func (d DatabaseConfig) DSN() string {
 	return fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
@@ -118,15 +116,15 @@ func (d DatabaseConfig) DSN() string {
 	)
 }
 
-func (d DatabaseConfig) MigrationURL() string {
+// MigrationDSN returns the postgres:// URL format required by golang-migrate.
+// golang-migrate and pgx use different connection string formats.
+func (d DatabaseConfig) MigrationDSN() string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		d.User, d.Password, d.Host, d.Port, d.Name, d.SSLMode,
 	)
 }
 
-// validate checks that all required variables are set.
-// Fails fast at startup rather than panicking mid-request.
 func (c *Config) validate() error {
 	if c.Supabase.JWTSecret == "" {
 		return fmt.Errorf("config: SUPABASE_JWT_SECRET is required")

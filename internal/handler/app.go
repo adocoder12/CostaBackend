@@ -33,8 +33,8 @@ func NewApp(
 }
 
 // serverError logs the full error detail (never exposed to client)
-func (a *App) serverError(c *gin.Context, err error) {
-	a.Logger.Error("internal server error",
+func (app *App) serverError(c *gin.Context, err error) {
+	app.Logger.Error("internal server error",
 		"path", c.Request.URL.Path,
 		"method", c.Request.Method,
 		"error", err.Error(),
@@ -46,7 +46,7 @@ func (a *App) serverError(c *gin.Context, err error) {
 }
 
 // clientError sends a structured 4xx response with a human-readable message.
-func (a *App) clientError(c *gin.Context, status int, message string) {
+func (app *App) clientError(c *gin.Context, status int, message string) {
 	c.JSON(status, gin.H{
 		"error":   http.StatusText(status),
 		"message": message,
@@ -54,6 +54,6 @@ func (a *App) clientError(c *gin.Context, status int, message string) {
 }
 
 // notFound is a 404 shorthand.
-func (a *App) notFound(c *gin.Context) {
-	a.clientError(c, http.StatusNotFound, "the requested resource was not found")
+func (app *App) notFound(c *gin.Context) {
+	app.clientError(c, http.StatusNotFound, "the requested resource was not found")
 }

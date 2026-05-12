@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres" // postgres driver
-	_ "github.com/golang-migrate/migrate/v4/source/file"       // file source
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/adocoder12/Costabackend/internal/config"
@@ -22,7 +22,6 @@ func NewPool(cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("db - parse config: %w", err)
 	}
 
-	// Explicit pool limits — prevents exhausting DB connections under load
 	poolConfig.MaxConns = cfg.MaxConns
 	poolConfig.MinConns = cfg.MinConns
 	poolConfig.MaxConnLifetime = 30 * time.Minute
@@ -44,11 +43,13 @@ func NewPool(cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
 }
 
 // Migrate runs all pending up migrations from internal/db/migrations.
+// Takes DatabaseConfig so it can use MigrationDSN() — the postgres:// URL
+// format that golang-migrate requires (different from pgx key=value format).
 // Safe to call on every startup — already-applied migrations are skipped.
-func Migrate(dsn string) error {
+func Migrate(cfg config.DatabaseConfig) error {
 	m, err := migrate.New(
 		"file://internal/db/migrations",
-		dsn,
+		cfg.MigrationDSN(), // ← URL format: postgres://user:pass@host:port/db
 	)
 	if err != nil {
 		return fmt.Errorf("db - migrate new: %w", err)

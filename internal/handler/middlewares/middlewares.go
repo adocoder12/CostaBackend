@@ -1,22 +1,27 @@
 package middlewares
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
-func CorsMiddleware() gin.HandlerFunc {
-
+// CorsMiddleware handles Cross-Origin Resource Sharing.
+// Must use a specific origin (not wildcard) when the frontend sends
+// credentials (Authorization: Bearer <jwt>).
+func CorsMiddleware(allowedOrigin string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Origin", allowedOrigin)
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Header("Access-Control-Allow-Credentials", "true")
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+		// Handle preflight requests
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 
 		c.Next()
 	}
-
 }
