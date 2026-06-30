@@ -32,7 +32,7 @@ type UpdateApartmentRequest struct {
 // ApartmentResponse is the outbound payload for all apartment endpoints.
 // IsMine and DoorCode masking are applied in the service layer.
 type ApartmentResponse struct {
-	ID            uuid.UUID  `json:"id"` // fixed: was db:"id"
+	ID            uuid.UUID  `json:"id"`
 	Name          string     `json:"name"`
 	Address       string     `json:"address"`
 	Status        string     `json:"status"`
@@ -40,7 +40,7 @@ type ApartmentResponse struct {
 	NextCheckIn   *time.Time `json:"next_check_in,omitempty"`
 	GuestName     string     `json:"guest_name,omitempty"`
 	DoorCode      *string    `json:"door_code,omitempty"` // nil if viewer is not the owner
-	IsMine        bool       `json:"is_mine"`             // computed in service, not stored in DB
+	IsMine        bool       `json:"is_mine"`             // computed in service not in db
 }
 
 // ToModel maps a CreateApartmentRequest to an Apartment model for persistence.

@@ -35,7 +35,6 @@ func (app *App) GetApartmentByIDHandler(c *gin.Context) {
 
 	apartment, err := app.ApartmentService.GetApartmentByID(c.Request.Context(), id, viewerID)
 	if err != nil {
-		// FIX: use errors.Is with sentinel — never string match on error messages
 		if errors.Is(err, repository.ErrNotFound) {
 			app.notFound(c)
 			return
@@ -70,7 +69,6 @@ func (app *App) UpdateApartmentHandler(c *gin.Context) {
 		app.clientError(c, http.StatusBadRequest, "invalid apartment id format")
 		return
 	}
-
 	var req dto.UpdateApartmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		app.clientError(c, http.StatusBadRequest, err.Error())

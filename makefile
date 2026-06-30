@@ -6,7 +6,7 @@ DB_USER=admin
 DB_NAME=costaBackend
 
 # --- Commands ---
-.PHONY: build dev run lint migrate-up migrate-down help
+.PHONY: build dev run lint migrate-up migrate-down help docker-up docker-down
 
 help:
 	@echo "Usage: make [target]"
@@ -17,6 +17,8 @@ help:
 	@echo "  lint          Run golangci-lint"
 	@echo "  migrate-up    Run all up migrations"
 	@echo "  migrate-down  Rollback the last migration"
+	@echo "  docker-up     Run up docker             "
+	@echo "  docker-down     Run down docker         "
 
 
 db-shell:

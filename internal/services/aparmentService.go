@@ -34,7 +34,7 @@ func NewApartmentService(repo repository.ApartmentsRepositoryInterface, logger *
 func (s *ApartmentService) GetApartments(ctx context.Context, viewerID uuid.UUID) ([]dto.ApartmentResponse, error) {
 	apts, flags, err := s.repo.GetApartments(ctx, viewerID)
 	if err != nil {
-		return nil, fmt.Errorf("apartment service - get all: %w", err)
+		return nil, fmt.Errorf("apartment service - error get all: %w", err)
 	}
 
 	response := make([]dto.ApartmentResponse, 0, len(apts))

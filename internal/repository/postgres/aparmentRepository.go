@@ -52,7 +52,7 @@ func (r *ApartmentRepository) GetApartments(ctx context.Context, viewerID uuid.U
 
 	rows, err := r.Pool.Query(ctx, query, viewerID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("apartment repo - get all: %w", err)
+		return nil, nil, fmt.Errorf("apartment repo - error get all: %w", err)
 	}
 	defer rows.Close()
 
@@ -69,7 +69,7 @@ func (r *ApartmentRepository) GetApartments(ctx context.Context, viewerID uuid.U
 			&a.GuestName, &a.Notes, &a.OwnerID, &a.CreatedAt, &a.UpdatedAt,
 			&isMine,
 		); err != nil {
-			return nil, nil, fmt.Errorf("apartment repo - scan: %w", err)
+			return nil, nil, fmt.Errorf("apartment repo - error scan rows: %w", err)
 		}
 
 		apartments = append(apartments, a)

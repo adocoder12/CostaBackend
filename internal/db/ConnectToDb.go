@@ -32,11 +32,11 @@ func NewPool(cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
-		return nil, fmt.Errorf("db - new pool: %w", err)
+		return nil, fmt.Errorf("db - new pool error: %w", err)
 	}
 
 	if err := pool.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("db - ping: %w", err)
+		return nil, fmt.Errorf("db - ping error: %w", err)
 	}
 
 	return pool, nil
@@ -51,10 +51,15 @@ func Migrate(cfg config.DatabaseConfig) error {
 		"file://internal/db/migrations",
 		cfg.MigrationDSN(), // ← URL format: postgres://user:pass@host:port/db
 	)
+
 	if err != nil {
 		return fmt.Errorf("db - migrate new: %w", err)
 	}
-	defer m.Close()
+
+	// Wrap the close in a closure to satisfy errcheck
+	defer func() {
+		_, _ = m.Close()
+	}()
 
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("db - migrate up: %w", err)

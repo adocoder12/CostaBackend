@@ -10,9 +10,8 @@ import (
 )
 
 type App struct {
-	Logger *slog.Logger
-	Config *config.Config
-	// Services added as interfaces in Phase 3:
+	Logger           *slog.Logger
+	Config           *config.Config
 	ApartmentService services.ApartmentServiceInterface
 	// CleanerService   service.CleanerServiceInterface
 	// BookingService   service.BookingServiceInterface

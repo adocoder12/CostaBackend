@@ -26,7 +26,7 @@ func main() {
 	// 2. Load .env — tolerant, production uses system env
 	if err := godotenv.Load(); err != nil {
 		// FIX: use slog consistently — not log.Printf
-		logger.Warn("no .env file found, using system environment")
+		logger.Warn("no .env file found")
 	}
 
 	// 3. Load config — fails fast if required vars are missing
@@ -53,7 +53,7 @@ func main() {
 		logger.Error("failed to run migrations", "error", err)
 		os.Exit(1)
 	}
-	logger.Info("✅ database migrations verified")
+	logger.Info("database migrations verified")
 
 	// 7. Wire dependencies bottom-up: repo → service → handler
 	aptRepo := &postgres.ApartmentRepository{Pool: pool}
@@ -72,7 +72,7 @@ func main() {
 		IdleTimeout:  time.Minute,
 	}
 
-	logger.Info("🚀 Costa PMS API starting", "port", cfg.Server.Port)
+	logger.Info(" Costa PMS API running on", "port", cfg.Server.Port)
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("server failed", "error", err)
 		os.Exit(1)

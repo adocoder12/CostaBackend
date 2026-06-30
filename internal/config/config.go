@@ -34,7 +34,6 @@ type DatabaseConfig struct {
 }
 
 // SupabaseConfig holds Supabase JWT verification settings.
-// Costa PMS does not issue its own JWTs — Supabase handles all auth.
 type SupabaseConfig struct {
 	JWTSecret string
 	URL       string
